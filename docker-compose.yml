@@ -1,0 +1,11 @@
+services:
+  dead-mans-switch:
+    build: .
+    container_name: dead-mans-switch
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./messages:/app/messages
+      - ./deadmanswitch.log:/app/deadmanswitch.log
+      - ./final_mail_sent.txt:/app/final_mail_sent.txt

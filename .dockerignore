@@ -1,0 +1,6 @@
+.git
+__pycache__
+*.pyc
+.env
+*.log
+final_mail_sent.txt
