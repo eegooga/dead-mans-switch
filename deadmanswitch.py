@@ -38,22 +38,22 @@ MESSAGES_DIR    = "messages"
 bot = telegram.Bot(token=TELEGRAM_BOT_TOKEN)
 last_response_time = time.time()
 
-# Standaard intervals
-check_interval   = 7  * 86400  # 7 dagen
-warning_interval = 14 * 86400  # 14 dagen
-final_interval   = 21 * 86400  # 21 dagen
+# Default intervals
+check_interval   = 7  * 86400  # 7 days
+warning_interval = 14 * 86400  # 14 days
+final_interval   = 21 * 86400  # 21 days
 
 lock = threading.Lock()
 
-# Flags om dubbele meldingen te voorkomen
+# Flags to prevent duplicate notifications
 check_sent   = False
 warning_sent = False
 final_sent   = False
 
-# Asyncio event loop voor Telegram-sends vanuit background thread
+# Asyncio event loop for Telegram messages sent from the background thread
 loop = asyncio.new_event_loop()
 
-logging.info("Dead Man’s Switch gestart.")
+logging.info("Dead Man's Switch started.")
 
 # ----------------------------- Helpers -----------------------------
 def is_authorized(update: Update) -> bool:
@@ -64,7 +64,7 @@ def send_telegram_message(message: str):
         try:
             await bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
         except Exception as e:
-            logging.error(f"Fout bij verzenden Telegram bericht: {e}")
+            logging.error(f"Error while sending Telegram message: {e}")
 
     asyncio.run_coroutine_threadsafe(async_send_message(), loop)
 
@@ -79,9 +79,9 @@ def send_email(subject: str, body: str, recipients: list[str]):
             server.starttls()
             server.login(EMAIL_USER, EMAIL_PASS)
             server.sendmail(EMAIL_USER, recipients, msg.as_string())
-        logging.info(f"E-mail verzonden: '{subject}' naar {', '.join(recipients)}")
+        logging.info(f"Email sent: '{subject}' to {', '.join(recipients)}")
     except Exception as e:
-        logging.error(f"Fout bij verzenden e-mail: {e}")
+        logging.error(f"Error while sending email: {e}")
 
 def load_messages_from_files():
     messages = []
@@ -90,57 +90,57 @@ def load_messages_from_files():
             with open(file_path, "r", encoding="utf-8") as f:
                 lines = f.read().splitlines()
                 if len(lines) < 3:
-                    logging.error(f"Berichtbestand onvoldoende regels: {file_path}")
+                    logging.error(f"Message file has too few lines: {file_path}")
                     continue
 
                 recipients = [r.strip() for r in lines[0].split(",") if r.strip()]
                 subject_line = lines[1].strip()
-                if subject_line.lower().startswith("onderwerp:"):
-                    subject = subject_line[len("onderwerp:"):].strip()
-                elif subject_line.lower().startswith("subject:"):
+                if subject_line.lower().startswith("subject:"):
                     subject = subject_line[len("subject:"):].strip()
+                elif subject_line.lower().startswith("onderwerp:"):
+                    subject = subject_line[len("onderwerp:"):].strip()
                 else:
-                    subject = "Een laatste brief"
+                    subject = "A final letter"
 
                 message = "\n".join(lines[2:]).strip()
 
                 if recipients and message:
                     messages.append((recipients, subject, message))
                 else:
-                    logging.error(f"Lege ontvangers of bericht in: {file_path}")
+                    logging.error(f"Empty recipients or message in: {file_path}")
         return messages
     except Exception as e:
-        logging.error(f"Fout bij inlezen berichten: {e}")
+        logging.error(f"Error while reading messages: {e}")
         return []
 
 def send_warning_mail():
     body = (
-        "⚠️ Dead Man’s Switch actief!\n\n"
-        "Er is al een tijd geen activiteit gedetecteerd.\n\n"
-        "➡️ Gebruik het commando /reset in Telegram om de timer opnieuw te starten.\n"
-        "Als je dit niet doet, worden na het ingestelde interval je berichten automatisch verstuurd."
+        "⚠️ Dead Man's Switch is active!\n\n"
+        "No activity has been detected for a while.\n\n"
+        "➡️ Use the /reset command in Telegram to restart the timer.\n"
+        "If you don't, your messages will be sent automatically after the configured interval."
     )
-    send_email("⚠️ Waarschuwing: Dead Man’s Switch actief", body, [MY_EMAIL])
+    send_email("⚠️ Warning: Dead Man's Switch is active", body, [MY_EMAIL])
 
 async def send_final_notice(total_recipients):
     try:
         await bot.send_message(
             chat_id=TELEGRAM_CHAT_ID,
-            text=f"📩 Alle finale mails zijn verzonden ({total_recipients} ontvangers).\n"
-                 "Het Dead Man’s Switch script stopt nu definitief."
+            text=f"📩 All final emails have been sent ({total_recipients} recipients).\n"
+                 "The Dead Man's Switch script will now stop permanently."
         )
     except Exception as e:
-        logging.error(f"Fout bij laatste Telegram-bericht: {e}")
+        logging.error(f"Error while sending final Telegram message: {e}")
 
 def send_final_mail():
     global final_sent
     if os.path.exists(FINAL_MAIL_FLAG):
-        logging.info("Final flag bestaat al; stoppen zonder opnieuw te verzenden.")
+        logging.info("Final flag already exists; stopping without re-sending.")
         os._exit(0)
 
     messages = load_messages_from_files()
     if not messages:
-        logging.error("Geen berichten gevonden in 'messages/'.")
+        logging.error("No messages found in 'messages/'.")
         return
 
     total_recipients = 0
@@ -150,9 +150,9 @@ def send_final_mail():
 
     open(FINAL_MAIL_FLAG, "w").write("sent")
     final_sent = True
-    logging.info(f"Totaal {total_recipients} ontvangers gemaild. Flag aangemaakt en script sluit af.")
+    logging.info(f"Total of {total_recipients} recipients emailed. Flag created and script is shutting down.")
 
-    # 👉 Synchroon slotbericht versturen vóór afsluiten
+    # 👉 Send final message synchronously before shutting down
     asyncio.run(send_final_notice(total_recipients))
 
     os._exit(0)
@@ -160,7 +160,7 @@ def send_final_mail():
 # ----------------------------- Telegram Commands -----------------------------
 async def set_interval(update: Update, context: CallbackContext, interval_type: str):
     if not is_authorized(update):
-        await update.message.reply_text("🚫 Je bent niet geautoriseerd om dit commando te gebruiken.")
+        await update.message.reply_text("🚫 You are not authorized to use this command.")
         return
     global check_interval, warning_interval, final_interval
     try:
@@ -182,14 +182,14 @@ async def set_interval(update: Update, context: CallbackContext, interval_type: 
             elif interval_type == "final":
                 final_interval = new_interval
 
-        logging.info(f"/set{interval_type} ingesteld op {input_value}.")
-        await update.message.reply_text(f"{interval_type.capitalize()} interval ingesteld op {input_value}.")
+        logging.info(f"/set{interval_type} set to {input_value}.")
+        await update.message.reply_text(f"{interval_type.capitalize()} interval set to {input_value}.")
     except Exception:
-        await update.message.reply_text(f"Gebruik: /set{interval_type} <tijd> (bijv. '1d', '2h', '30m')")
+        await update.message.reply_text(f"Usage: /set{interval_type} <time> (e.g. '1d', '2h', '30m')")
 
 async def reset_timer(update: Update, context: CallbackContext):
     if not is_authorized(update):
-        await update.message.reply_text("🚫 Je bent niet geautoriseerd om dit commando te gebruiken.")
+        await update.message.reply_text("🚫 You are not authorized to use this command.")
         return
     global last_response_time, check_sent, warning_sent, final_sent
     with lock:
@@ -197,30 +197,30 @@ async def reset_timer(update: Update, context: CallbackContext):
         check_sent = False
         warning_sent = False
         final_sent = False
-    logging.info("/reset ontvangen → timer gereset.")
-    await update.message.reply_text("✅ Timer gereset.")
+    logging.info("/reset received → timer reset.")
+    await update.message.reply_text("✅ Timer reset.")
 
 async def show_status(update: Update, context: CallbackContext):
     if not is_authorized(update):
-        await update.message.reply_text("🚫 Je bent niet geautoriseerd om dit commando te gebruiken.")
+        await update.message.reply_text("🚫 You are not authorized to use this command.")
         return
     with lock:
         next_check = time.strftime('%d-%m-%Y %H:%M:%S', time.localtime(last_response_time + check_interval))
-    logging.info("/status opgevraagd.")
-    await update.message.reply_text(f"Volgende controle: {next_check}")
+    logging.info("/status requested.")
+    await update.message.reply_text(f"Next check: {next_check}")
 
 async def show_help(update: Update, context: CallbackContext):
     if not is_authorized(update):
-        await update.message.reply_text("🚫 Je bent niet geautoriseerd om dit commando te gebruiken.")
+        await update.message.reply_text("🚫 You are not authorized to use this command.")
         return
     help_text = """
-📌 Commando's:
-/status - Volgende controle
-/setcheck <tijd> - Check-interval
-/setwarning <tijd> - Waarschuwingstijd
-/setfinal  <tijd> - Finale e-mail tijd
+📌 Commands:
+/status - Next check
+/setcheck <time> - Check interval
+/setwarning <time> - Warning interval
+/setfinal  <time> - Final email interval
 /reset - Reset timer
-/help  - Toon deze lijst
+/help  - Show this list
 """
     await update.message.reply_text(help_text)
 
@@ -234,13 +234,13 @@ def start_background_task():
                 elapsed_time = time.time() - last_response_time
                 if elapsed_time >= check_interval and not check_sent:
                     send_telegram_message(
-                        "⚠️ Dead Man’s Switch actief!\n"
-                        "Er is al een tijd geen activiteit gedetecteerd.\n\n"
-                        "➡️ Gebruik het commando /reset in Telegram om de timer opnieuw te starten.\n"
-                        "Als je dit niet doet, worden na het ingestelde interval je berichten automatisch verstuurd."
+                        "⚠️ Dead Man's Switch is active!\n"
+                        "No activity has been detected for a while.\n\n"
+                        "➡️ Use the /reset command in Telegram to restart the timer.\n"
+                        "If you don't, your messages will be sent automatically after the configured interval."
                     )
                     check_sent = True
-                    logging.info("Check-bericht via Telegram verstuurd.")
+                    logging.info("Check message sent via Telegram.")
 
                 if elapsed_time >= warning_interval and not warning_sent:
                     send_warning_mail()
@@ -257,7 +257,7 @@ def start_event_loop():
 
 # ----------------------------- Main -----------------------------
 if os.path.exists(FINAL_MAIL_FLAG):
-    logging.info("Final flag bestaat al bij start → script stopt direct.")
+    logging.info("Final flag already exists at startup → script exits immediately.")
     os._exit(0)
 
 threading.Thread(target=start_event_loop, daemon=True).start()
