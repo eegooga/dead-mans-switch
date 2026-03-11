@@ -10,6 +10,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY deadmanswitch.py ./
 
-RUN mkdir -p /app/messages /app/lock
+RUN mkdir -p /app/messages /app/lock /app/logs
 
 CMD ["python", "deadmanswitch.py"]

@@ -7,5 +7,5 @@ services:
       - .env
     volumes:
       - ./messages:/app/messages
-      - ./deadmanswitch.log:/app/deadmanswitch.log
+      - ./logs:/app/logs
       - ./lock:/app/lock
