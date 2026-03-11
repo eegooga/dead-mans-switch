@@ -27,9 +27,10 @@ load_dotenv()
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID   = os.getenv("TELEGRAM_CHAT_ID")
 EMAIL_HOST = os.getenv("EMAIL_HOST")
-EMAIL_PORT = os.getenv("EMAIL_PORT")
+EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
 EMAIL_USER = os.getenv("EMAIL_USER")
 EMAIL_PASS = os.getenv("EMAIL_PASS")
+EMAIL_SECURITY = os.getenv("EMAIL_SECURITY", "auto").strip().lower()
 MY_EMAIL   = os.getenv("MY_EMAIL")
 EMAIL_NAME = os.getenv("EMAIL_NAME")
 LOCK_DIR = "lock"
@@ -78,10 +79,21 @@ def send_email(subject: str, body: str, recipients: list[str]):
     msg["To"] = ", ".join(recipients)
 
     try:
-        with smtplib.SMTP(EMAIL_HOST, EMAIL_PORT) as server:
-            server.starttls()
-            server.login(EMAIL_USER, EMAIL_PASS)
-            server.sendmail(EMAIL_USER, recipients, msg.as_string())
+        use_ssl = EMAIL_SECURITY == "ssl" or (EMAIL_SECURITY == "auto" and EMAIL_PORT == 465)
+        use_starttls = EMAIL_SECURITY == "starttls" or (EMAIL_SECURITY == "auto" and EMAIL_PORT != 465)
+
+        smtp_class = smtplib.SMTP_SSL if use_ssl else smtplib.SMTP
+        with smtp_class(EMAIL_HOST, EMAIL_PORT) as server:
+            if use_starttls:
+                server.ehlo()
+                server.starttls()
+                server.ehlo()
+
+            if EMAIL_USER and EMAIL_PASS:
+                server.login(EMAIL_USER, EMAIL_PASS)
+
+            sender = EMAIL_USER or MY_EMAIL
+            server.sendmail(sender, recipients, msg.as_string())
         logging.info(f"Email sent: '{subject}' to {', '.join(recipients)}")
     except Exception as e:
         logging.error(f"Error while sending email: {e}")
