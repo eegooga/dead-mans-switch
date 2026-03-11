@@ -25,3 +25,13 @@
 ```bash
 docker compose down
 ```
+
+
+### SMTP auth note
+
+If your SMTP provider rejects login with `535 Incorrect authentication data`, check the SMTP mode:
+- `EMAIL_SECURITY=auto` — uses `STARTTLS` on ports other than `465`, and `SSL` on `465`
+- `EMAIL_SECURITY=starttls` — always use STARTTLS
+- `EMAIL_SECURITY=ssl` — always use SSL/TLS (implicit TLS)
+
+For many providers, `465 + ssl` or `587 + starttls` is required.
