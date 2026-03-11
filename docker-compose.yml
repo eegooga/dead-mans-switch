@@ -8,4 +8,4 @@ services:
     volumes:
       - ./messages:/app/messages
       - ./deadmanswitch.log:/app/deadmanswitch.log
-      - ./final_mail_sent.txt:/app/final_mail_sent.txt
+      - ./lock:/app/lock

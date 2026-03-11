@@ -32,7 +32,8 @@ EMAIL_USER = os.getenv("EMAIL_USER")
 EMAIL_PASS = os.getenv("EMAIL_PASS")
 MY_EMAIL   = os.getenv("MY_EMAIL")
 EMAIL_NAME = os.getenv("EMAIL_NAME")
-FINAL_MAIL_FLAG = "final_mail_sent.txt"
+LOCK_DIR = "lock"
+FINAL_MAIL_FLAG = os.path.join(LOCK_DIR, "final_mail_sent.txt")
 MESSAGES_DIR    = "messages"
 
 bot = telegram.Bot(token=TELEGRAM_BOT_TOKEN)
@@ -52,6 +53,8 @@ final_sent   = False
 
 # Asyncio event loop for Telegram messages sent from the background thread
 loop = asyncio.new_event_loop()
+
+os.makedirs(LOCK_DIR, exist_ok=True)
 
 logging.info("Dead Man's Switch started.")
 
