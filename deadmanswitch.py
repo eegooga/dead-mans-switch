@@ -13,7 +13,7 @@ import glob
 
 # ----------------------------- Logging -----------------------------
 logging.basicConfig(
-    filename="deadmanswitch.log",
+    filename="./logs/deadmanswitch.log",
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
