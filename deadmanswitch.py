@@ -30,6 +30,7 @@ EMAIL_HOST = os.getenv("EMAIL_HOST")
 EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
 EMAIL_USER = os.getenv("EMAIL_USER")
 EMAIL_PASS = os.getenv("EMAIL_PASS")
+EMAIL_FROM = os.getenv("EMAIL_FROM")
 EMAIL_SECURITY = os.getenv("EMAIL_SECURITY", "auto").strip().lower()
 MY_EMAIL   = os.getenv("MY_EMAIL")
 EMAIL_NAME = os.getenv("EMAIL_NAME")
@@ -73,9 +74,10 @@ def send_telegram_message(message: str):
     asyncio.run_coroutine_threadsafe(async_send_message(), loop)
 
 def send_email(subject: str, body: str, recipients: list[str]):
+    sender = EMAIL_FROM or EMAIL_USER or MY_EMAIL
     msg = MIMEText(body, "plain")
     msg["Subject"] = subject
-    msg["From"] = f"{EMAIL_NAME} <{EMAIL_USER}>" if EMAIL_NAME else EMAIL_USER
+    msg["From"] = f"{EMAIL_NAME} <{sender}>" if EMAIL_NAME else sender
     msg["To"] = ", ".join(recipients)
 
     try:
@@ -92,7 +94,6 @@ def send_email(subject: str, body: str, recipients: list[str]):
             if EMAIL_USER and EMAIL_PASS:
                 server.login(EMAIL_USER, EMAIL_PASS)
 
-            sender = EMAIL_USER or MY_EMAIL
             server.sendmail(sender, recipients, msg.as_string())
         logging.info(f"Email sent: '{subject}' to {', '.join(recipients)}")
     except Exception as e:
