@@ -229,6 +229,8 @@ async def show_help(update: Update, context: CallbackContext):
     if not is_authorized(update):
         await update.message.reply_text("🚫 You are not authorized to use this command.")
         return
+    with lock:
+        next_check = time.strftime('%d-%m-%Y %H:%M:%S', time.localtime(last_response_time + check_interval))
     help_text = """
 📌 Commands:
 /status - Next check
@@ -237,8 +239,9 @@ async def show_help(update: Update, context: CallbackContext):
 /setfinal  <time> - Final email interval
 /reset - Reset timer
 /help  - Show this list
+/menu  - Show this list
 """
-    await update.message.reply_text(help_text)
+    await update.message.reply_text(f"{help_text}\nNext check: {next_check}")
 
 # ----------------------------- Background Task -----------------------------
 def start_background_task():
@@ -286,4 +289,5 @@ application.add_handler(CommandHandler("setwarning", lambda u, c: set_interval(u
 application.add_handler(CommandHandler("setfinal", lambda u, c: set_interval(u, c, "final")))
 application.add_handler(CommandHandler("reset",    reset_timer))
 application.add_handler(CommandHandler("help",     show_help))
+application.add_handler(CommandHandler("menu",     show_help))
 application.run_polling()
